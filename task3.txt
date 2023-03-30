@@ -1,0 +1,60 @@
+Для решения задачи мы можем воспользоваться API Яндекс.Карт, который позволяет получать геокодированные данные по заданным адресам. Для работы с API нам потребуется API-ключ, который можно получить на сайте Яндекс.Девелопер.
+
+Для выполнения задачи, мы можем написать скрипт на языке Python, который будет использовать библиотеку requests для выполнения запросов к API Яндекс.Карт и библиотеку openpyxl для чтения списка объектов из файла source.xlsx и записи полученных геокодированных данных в новый файл result.xlsx.
+
+Пример кода для выполнения задачи на языке Python:
+
+import requests
+import openpyxl
+
+# API ключ для доступа к Яндекс.Карт
+API_KEY = 'your_api_key'
+
+# URL для выполнения запроса к API Яндекс.Карт
+URL = 'https://geocode-maps.yandex.ru/1.x/'
+
+# Загрузка списка объектов из файла source.xlsx
+workbook = openpyxl.load_workbook('source.xlsx')
+worksheet = workbook.active
+objects = [cell.value for cell in worksheet['A'] if cell.value is not None]
+
+# Получение геокодированных данных для каждого объекта
+result = []
+for object in objects:
+    # Формирование параметров запроса к API Яндекс.Карт
+    params = {
+        'apikey': API_KEY,
+        'geocode': object,
+        'format': 'json'
+    }
+    
+    # Выполнение запроса к API Яндекс.Карт
+    response = requests.get(URL, params=params)
+    response_json = response.json()
+    
+    # Получение координат объекта из ответа API Яндекс.Карт
+    try:
+        pos = response_json['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
+        lng, lat = map(float, pos.split())
+        result.append((object, lat, lng))
+    except:
+        print(f'Failed to geocode object "{object}"')
+        result.append((object, None, None))
+
+# Запись геокодированных данных в файл result.xlsx
+workbook = openpyxl.Workbook()
+worksheet = workbook.active
+worksheet.append(['Object', 'Latitude', 'Longitude'])
+for row in result:
+    worksheet.append(row)
+workbook.save('result.xlsx')
+
+
+
+/////////////
+
+После выполнения скрипта в файле result.xlsx будут содержаться геокодированные данные для каждого объекта в формате:
+
+Object	Latitude	Longitude
+...	...	         ...
+Далее мы можем использовать полученные координаты для отображения объектов на карте с помощью инструментов PostGIS или формирования файла GeoJSON для экспорта данных на карту.

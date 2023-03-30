@@ -1,0 +1,157 @@
+Для выполнения данной задачи вам потребуется подключиться к базе данных, выполнить запрос и сохранить результат в файл Excel. В языке C# для подключения к базе данных мы можем использовать ADO.NET, а для работы с Excel - библиотеку Office Open XML SDK.
+
+Пример кода на C#:
+
+using System;
+using System.Data;
+using System.Data.SqlClient;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+
+namespace ConsoleApp
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            string connectionString = "Data Source=(local);Initial Catalog=database_name;Integrated Security=True";
+            string query = @"
+                SELECT t.id, t.title, w.title AS work_type, f.sticker_id
+                FROM tasks t
+                INNER JOIN work_types w ON t.work_type_id = w.id
+                LEFT JOIN files f ON t.id = f.task_id";
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                SqlCommand command = new SqlCommand(query, connection);
+                SqlDataAdapter dataAdapter = new SqlDataAdapter(command);
+                DataTable dataTable = new DataTable();
+                dataAdapter.Fill(dataTable);
+
+                // Создание файла Excel и листа
+                SpreadsheetDocument spreadsheetDocument = SpreadsheetDocument.Create("result.xlsx", SpreadsheetDocumentType.Workbook);
+                WorkbookPart workbookPart = spreadsheetDocument.AddWorkbookPart();
+                workbookPart.Workbook = new Workbook();
+                WorksheetPart worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+                worksheetPart.Worksheet = new Worksheet(new SheetData());
+
+                // Заполнение листа данными
+                SheetData sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>();
+                Row headerRow = new Row();
+                headerRow.Append(new Cell() { CellValue = new CellValue("ID"), DataType = CellValues.String });
+                headerRow.Append(new Cell() { CellValue = new CellValue("Title"), DataType = CellValues.String });
+                headerRow.Append(new Cell() { CellValue = new CellValue("Work Type"), DataType = CellValues.String });
+                headerRow.Append(new Cell() { CellValue = new CellValue("Sticker ID"), DataType = CellValues.String });
+                sheetData.AppendChild(headerRow);
+
+                foreach (DataRow row in dataTable.Rows)
+                {
+                    Row dataRow = new Row();
+                    dataRow.Append(new Cell() { CellValue = new CellValue(row["id"].ToString()), DataType = CellValues.Number });
+                    dataRow.Append(new Cell() { CellValue = new CellValue(row["title"].ToString()), DataType = CellValues.String });
+                    dataRow.Append(new Cell() { CellValue = new CellValue(row["work_type"].ToString()), DataType = CellValues.String });
+                    dataRow.Append(new Cell() { CellValue = new CellValue(row["sticker_id"].ToString()), DataType = CellValues.Number });
+                    sheetData.AppendChild(dataRow);
+                }
+
+                workbookPart.Workbook.AppendChild(new Sheets());
+                Sheet sheet = new Sheet() { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Sheet1" };
+                workbookPart.Workbook.GetFirstChild<Sheets>().AppendChild(sheet);
+                workbookPart.Workbook.Save();
+
+                spreadsheetDocument.Close();
+            }
+        }
+    }
+}
+
+
+
+
+В данном примере мы используем SqlConnection для подключения к базе данных, SqlDataAdapter для выполнения запроса и получения результата в виде DataTable. Затем мы создаем файл Excel с помощью SpreadsheetDocument, создаем лист и зап
+
+
+Для выполнения запроса из базы данных и записи результата в файл Excel, можно использовать библиотеку Openpyxl в Python. Вот пример кода на Python:
+
+
+
+import psycopg2
+from openpyxl import Workbook
+
+# Подключение к базе данных
+conn = psycopg2.connect(dbname='название_базы_данных', user='пользователь', password='пароль', host='хост')
+cur = conn.cursor()
+
+# Выполнение запроса и получение результата
+cur.execute("SELECT tasks.title, work_types.title, date_created, stickers.title \
+             FROM tasks \
+             JOIN work_types ON tasks.work_type_id = work_types.id \
+             LEFT JOIN files ON tasks.id = files.task_id \
+             LEFT JOIN stickers ON files.sticker_id = stickers.id")
+result = cur.fetchall()
+
+# Создание и заполнение файла Excel
+wb = Workbook()
+ws = wb.active
+ws.title = "Результат запроса"
+
+# Запись заголовков таблицы
+ws.cell(row=1, column=1, value="Название задания")
+ws.cell(row=1, column=2, value="Тип работы")
+ws.cell(row=1, column=3, value="Дата создания")
+ws.cell(row=1, column=4, value="Значок")
+
+# Запись данных из результата запроса
+for row in result:
+    ws.append(row)
+
+# Сохранение файла
+wb.save("результат.xlsx")
+
+# Закрытие соединения с базой данных
+cur.close()
+conn.close()
+
+
+Если же нужно написать код на C#, то можно использовать библиотеку Npgsql для работы с PostgreSQL, и библиотеку EPPlus для создания и заполнения файлов Excel. Пример кода на C#:
+
+using System;
+using System.IO;
+using Npgsql;
+using OfficeOpenXml;
+
+namespace DatabaseToExcel
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Подключение к базе данных
+            NpgsqlConnection conn = new NpgsqlConnection("Server=хост;Database=название_базы_данных;User Id=пользователь;Password=пароль;");
+            conn.Open();
+
+            // Выполнение запроса и получение результата
+            NpgsqlCommand cmd = new NpgsqlCommand("SELECT tasks.title, work_types.title, date_created, stickers.title " +
+                                                  "FROM tasks " +
+                                                  "JOIN work_types ON tasks.work_type_id = work_types.id " +
+                                                  "LEFT JOIN files ON tasks.id = files.task_id " +
+                                                  "LEFT JOIN stickers ON files.sticker_id = stickers.id", conn);
+            NpgsqlDataReader reader = cmd.ExecuteReader();
+
+            // Создание и заполнение файла Excel
+            ExcelPackage excel = new ExcelPackage();
+            ExcelWorksheet worksheet = excel.Workbook.Worksheets.Add("Результат запроса");
+
+            // Запись заголовков таблицы
+            worksheet.Cells[1, 1].Value = "Название задания";
+            worksheet.Cells[1, 2].Value = "Тип работы";
+            worksheet.Cells[1, 3].Value = "Дата создания";
+            worksheet.Cells[1, 4].Value = "Значок";
+
+            // Запись данных из результата запроса
+            int row = 2;
+            while (reader.Read())
+            {
+                worksheet.Cells[row, 1].Value = reader.GetString(0);
+                worksheet

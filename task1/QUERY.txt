@@ -1,0 +1,8 @@
+SELECT tasks.id, tasks.title, COUNT(DISTINCT CASE WHEN files.sticker_id = 4 THEN files.id END) AS "Кол-во ракурсов",
+COUNT(DISTINCT CASE WHEN files.sticker_id NOT IN (4, 5) AND files.sticker_id IS NOT NULL THEN files.id END) AS "Кол-во фото"
+FROM tasks
+JOIN work_types ON tasks.work_type_id = work_types.id
+LEFT JOIN files ON tasks.id = files.task_id
+WHERE work_types.title = 'Снегопад. Содержание УЗ (1 день)'
+AND tasks.date_created BETWEEN '2022-02-01' AND '2022-02-07'
+GROUP BY tasks.id, tasks.title;
